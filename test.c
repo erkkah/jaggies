@@ -268,37 +268,50 @@ void printLines() {
 }
 
 void animate(Tigr* screen, float time) {
-    static float pos = 0;
-    const float speed = (2 * M_PI) / 4;
-    pos += time * speed;
-    pos = fmodf(pos, 2 * M_PI);
+    static float pos1 = 0;
+    static float pos2 = 0;
 
-    const int numEdges = 5;
-    Point points[numEdges + 1 + 4 + 1];
+    const float speed1 = (2 * M_PI) / 4;
+    const float speed2 = (2 * M_PI) / 3;
 
-    float edgePhase = pos;
-    float edgeInc = (2 * M_PI) / numEdges;
-    for(int i = 0; i < numEdges; i++){
-        float x = cosf(edgePhase);
-        float y = sinf(edgePhase);
-        points[i].x = x * 100 + 100;
-        points[i].y = y * 100 + 100;
-        edgePhase += edgeInc;
+    pos1 += time * speed1;
+    pos1 = fmodf(pos1, 2 * M_PI);
+
+    pos2 -= time * speed2;
+    pos2 = fmodf(pos2, 2 * M_PI);
+
+    const int outerEdges = 5;
+    const int innerEdges = 4;
+    Point points[outerEdges + 1 + innerEdges + 1];
+    Point* p = points;
+
+    {
+        float edgePhase = pos1;
+        float edgeInc = (2 * M_PI) / outerEdges;
+        for(int i = 0; i < outerEdges; i++, p++){
+            float x = cosf(edgePhase);
+            float y = sinf(edgePhase);
+            p->x = x * 100 + 100;
+            p->y = y * 100 + 100;
+            edgePhase += edgeInc;
+        }
+        p->x = -2;
+        p->y = -2;
+        p++;
     }
-    points[numEdges].x = -2;
-    points[numEdges].y = -2;
 
-    Point square[] = {
-        {80, 80},
-        {120, 80},
-        {120, 120},
-        {80, 120},
-        {-1, -1},
-        {-9, -9}
-    };
-
-    for(Point *s = square, *p = points + numEdges + 1; s->x != -9; s++, p++) {
-        *p = *s;
+    {
+        float edgePhase = pos2;
+        float edgeInc = (2 * M_PI) / innerEdges;
+        for(int i = 0; i < innerEdges; i++, p++){
+            float x = cosf(edgePhase);
+            float y = sinf(edgePhase);
+            p->x = x * 50 + 100;
+            p->y = y * 50 + 100;
+            edgePhase += edgeInc;
+        }
+        p->x = -1;
+        p->y = -1;
     }
 
     clear();
