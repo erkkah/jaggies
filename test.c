@@ -1,5 +1,6 @@
 #include "tigr.h"
 #include <stdio.h>
+#include <math.h>
 
 typedef struct Point {
     int x, y;
@@ -191,14 +192,13 @@ int doesPixelCrossLine(int x, int y, Line* l) {
         return 0;
     }
 
-    float hitX = -1;
+    int hitX = -1;
 
     // Special case for vertical line
     if(l->x1 == l->x2) {
-        //return (x <= l->x1) && (x + 1 > l->x1)
         hitX = l->x1;
     } else {
-        hitX = (y - l->m) / l->k;
+        hitX = round((y - l->m) / l->k);
     }
     //printf("(%d, %d) ? %f, %f, %f, @%ld\n", x, y, k, m, hitX, l - lines);
     if ((x <= hitX) && (x + 1 > hitX)) {
@@ -252,20 +252,55 @@ void printLines() {
     }
 }
 
+void animate(Tigr* screen, float time) {
+    static float pos = 0;
+    const float speed = (2 * M_PI) / 4;
+    pos += time * speed;
+    pos = fmodf(pos, 2 * M_PI);
+    printf("Pos: %f\n", pos);
+
+    const int numEdges = 5;
+    Point points[numEdges + 1];
+
+    float edgePhase = pos;
+    float edgeInc = (2 * M_PI) / numEdges;
+    for(int i = 0; i < numEdges; i++){
+        float x = cosf(edgePhase);
+        float y = sinf(edgePhase);
+        points[i].x = x * 100 + 100;
+        points[i].y = y * 100 + 100;
+        edgePhase += edgeInc;
+    }
+    points[numEdges].x = -1;
+    points[numEdges].y = -1;
+
+    clear();
+    addPoly(points);
+    printLines();
+    renderPolys(screen);
+}
+
 int main() {
     Tigr *screen = tigrWindow(200, 200, "e-ink", TIGR_FIXED);
 
     addTestPolys();
     printLines();
-    //return 1;
+
+    int mode = 0;
 
     while (!tigrClosed(screen))
     {
+        float now = tigrTime();
+        if(tigrReadChar(screen) != 0) {
+            mode ^= 1;
+        }
         tigrClear(screen, tigrRGB(0x00, 0x00, 0x00));
-        tigrFill(screen, 0, 0, 20, 20, tigrRGB(0x00, 0x66, 0x66));
-        renderPolys(screen);
+        if(mode == 0) {
+            renderPolys(screen);
+        } else {
+            animate(screen, now);
+        }
         tigrUpdate(screen);
-        //break;
     }
     tigrFree(screen);
     return 0;
