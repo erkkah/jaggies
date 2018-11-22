@@ -2,6 +2,16 @@
 #include <stdio.h>
 #include <math.h>
 
+/*
+
+Tinyvec - a tiny lib for writing vector graphics to a bitmap.
+
+* Filled polygon (done)
+* Polygon (todo)
+* Line segment (todo)
+
+*/
+
 typedef struct Point {
     int x, y;
 } Point;
@@ -73,20 +83,12 @@ void setHorizontalPeak(Line* current, Line* prev) {
     {
         current->hpeak = 1;
     }
-    /*
-    printf("(%d, %d)-(%d, %d) => (%d, %d)-(%d, %d): %d\n",
-        prev->x1, prev->y1,
-        prev->x2, prev->y2,
-        current->x1, current->y1,
-        current->x2, current->y2,
-        current->hpeak
-    );
-    */
 }
 
 // Points in clock-wise order.
 // Auto closes between start and end points.
-// Terminate list with negative coordinate.
+// Separate segments (for cut-outs) with x = -2.
+// Terminate list with x = -1.
 void addPoly(Point* points) {
     int polyID = polyEnd++;
     Poly* poly = polys + polyID;
@@ -95,26 +97,39 @@ void addPoly(Point* points) {
     Point* p1 = points;
     Point* p2 = p1 + 1;
 
-    Line* first = 0;
-    Line* current = 0;
-    Line* prev = 0;
+    int done = 0;
+    while(!done) {
+        Line* first = 0;
+        Line* current = 0;
+        Line* prev = 0;
 
-    while(p2->x >= 0) {
-        current = addLine(p1->x, p1->y, p2->x, p2->y, polyID);
-        if(first == 0){
-            first = current;
-        } else {
-            // prev is always != 0 here
-            setHorizontalPeak(current, prev);
+        while(p2->x >= 0) {
+            current = addLine(p1->x, p1->y, p2->x, p2->y, polyID);
+            if(first == 0){
+                first = current;
+            } else {
+                // prev is always != 0 here
+                setHorizontalPeak(current, prev);
+            }
+            prev = current;
+            p1 = p2;
+            p2++;
         }
-        prev = current;
-        p1 = p2;
-        p2++;
+
+        if(p2->x == -1) {
+            done = 1;
+        }
+
+        current = addLine(p1->x, p1->y, first->x1, first->y1, polyID);
+        setHorizontalPeak(current, prev);
+        setHorizontalPeak(first, current);
+
+        if(!done) {
+            // Skip negative marker, on to the next vertex
+            p1 += 2;
+            p2 = p1 + 1;
+        }
     }
-    p2 = points;
-    current = addLine(p1->x, p1->y, p2->x, p2->y, polyID);
-    setHorizontalPeak(current, prev);
-    setHorizontalPeak(first, current);
 }
 
 void clear() {
@@ -257,10 +272,9 @@ void animate(Tigr* screen, float time) {
     const float speed = (2 * M_PI) / 4;
     pos += time * speed;
     pos = fmodf(pos, 2 * M_PI);
-    printf("Pos: %f\n", pos);
 
     const int numEdges = 5;
-    Point points[numEdges + 1];
+    Point points[numEdges + 1 + 4 + 1];
 
     float edgePhase = pos;
     float edgeInc = (2 * M_PI) / numEdges;
@@ -271,34 +285,53 @@ void animate(Tigr* screen, float time) {
         points[i].y = y * 100 + 100;
         edgePhase += edgeInc;
     }
-    points[numEdges].x = -1;
-    points[numEdges].y = -1;
+    points[numEdges].x = -2;
+    points[numEdges].y = -2;
+
+    Point square[] = {
+        {80, 80},
+        {120, 80},
+        {120, 120},
+        {80, 120},
+        {-1, -1},
+        {-9, -9}
+    };
+
+    for(Point *s = square, *p = points + numEdges + 1; s->x != -9; s++, p++) {
+        *p = *s;
+    }
 
     clear();
     addPoly(points);
-    printLines();
+
+    Point bar[] = {
+        {5, 95},
+        {195, 95},
+        {195, 105},
+        {5, 105},
+        {-1, -1}
+    };
+    addPoly(bar);
+
     renderPolys(screen);
 }
 
 int main() {
     Tigr *screen = tigrWindow(200, 200, "e-ink", TIGR_FIXED);
 
-    addTestPolys();
-    printLines();
-
-    int mode = 0;
+    int pause = 0;
 
     while (!tigrClosed(screen))
     {
         float now = tigrTime();
         if(tigrReadChar(screen) != 0) {
-            mode ^= 1;
+            pause ^= 1;
         }
         tigrClear(screen, tigrRGB(0x00, 0x00, 0x00));
-        if(mode == 0) {
-            renderPolys(screen);
-        } else {
+        if(pause == 0) {
             animate(screen, now);
+        } else {
+            renderPolys(screen);
         }
         tigrUpdate(screen);
     }
