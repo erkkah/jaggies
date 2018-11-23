@@ -1,6 +1,7 @@
 #include "tinyvec.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef tinyPoint Point;
 
@@ -28,26 +29,40 @@ typedef struct Poly {
 } Poly;
 
 const int MAX_POLYS = 256;
-Poly polys[MAX_POLYS];
+static Poly polys[MAX_POLYS];
 
 const int MAX_LINES = 1024;
-Line lines[MAX_LINES];
+static Line lines[MAX_LINES];
+static Line* sortedLines[MAX_LINES];
 
-int polyEnd = 0;
-int lineEnd = 0;
+static int polyEnd = 0;
+static int lineEnd = 0;
 
-void printLine(Line* l) {
-    printf("l(%d, %d)-(%d, %d) k=%f, m=%f, peak=%d, dx=%d, dy=%d, err=%d\n",
+static int sorted = 0;
+
+static void printLine(Line* l) {
+    printf("l(%d, %d)-(%d, %d) k=%f, m=%f, peak=%d, dx=%d, dy=%d, y0=%d, err=%d\n",
         l->x1, l->y1,
         l->x2, l->y2,
         l->k, l->m, l->hpeak,
-        l->dx, l->dy, l->err
+        l->dx, l->dy, l->y0, l->err
     );
 }
 
-void printLines() {
-    for(Line* l = lines; l < lines + lineEnd; l++) {
-        printLine(l);
+static void printLines() {
+    for(Line** l = sortedLines; l < sortedLines + lineEnd; l++) {
+        printLine(*l);
+    }
+}
+
+static int lineCompareY0(const void* a, const void* b) {
+    return (*(Line**)a)->y0 - (*(Line**)b)->y0;
+}
+
+static void sortLines() {
+    if(!sorted) {
+        qsort(sortedLines, lineEnd, sizeof(Line*), lineCompareY0);
+        sorted = 1;
     }
 }
 
@@ -65,7 +80,7 @@ lines bleeding to the right.
 
 */
 
-Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
+static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
     int lineID = lineEnd++;
     Line* line = lines + lineID;
     line->x1 = x1;
@@ -106,13 +121,19 @@ Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
         line->sx = -1;
     }
 
-    line->err = (line->dx > line->dy ? line->dx : -line->dy) / 2;
+    line->dx *= 2;
+    line->dy *= 2;
+    line->err = (line->dx > line->dy) ? line->dx : -line->dy;
 
     line->hpeak = 0;
+
+    sortedLines[lineID] = line;
+    sorted = 0;
+
     return line;
 }
 
-void setHorizontalPeak(Line* current, Line* prev) {
+static void setHorizontalPeak(Line* current, Line* prev) {
     // Assume current(x1, y1) == prev(x2, y2)
 
     int currentDir = current->y2 - current->y1;
@@ -128,7 +149,11 @@ void setHorizontalPeak(Line* current, Line* prev) {
 // Auto closes between start and end points.
 // Separate segments (for cut-outs) with x = -2.
 // Terminate list with x = -1.
-void tinyPoly(Point* points) {
+int tinyPoly(Point* points) {
+    if(polyEnd == MAX_POLYS) {
+        return 0;
+    }
+
     int polyID = polyEnd++;
     Poly* poly = polys + polyID;
     poly->inside = 0;
@@ -169,9 +194,11 @@ void tinyPoly(Point* points) {
             p2 = p1 + 1;
         }
     }
+
+    return 1;
 }
 
-void tinyLine(int x1, int y1, int x2, int y2) {
+int tinyLine(int x1, int y1, int x2, int y2) {
     Point points[5] = {
         {x1, y1},
         {x2, y2},
@@ -179,7 +206,7 @@ void tinyLine(int x1, int y1, int x2, int y2) {
         {x1, y1 + 1},
         {-1, -1}
     };
-    tinyPoly(points);
+    return tinyPoly(points);
 }
 
 void tinyClear() {
@@ -187,7 +214,7 @@ void tinyClear() {
     lineEnd = 0;
 }
 
-int doesPixelCrossLine(int x, int y, Line* l) {
+static int doesPixelCrossLine(int x, int y, Line* l) {
 
     // Special case covers half open interval start
     // and horizontal peaks.
@@ -246,23 +273,48 @@ int doesPixelCrossLine(int x, int y, Line* l) {
 }
 
 void tinyRender(int width, int height, pixelSetter setter, void* context) {
-    // One scanline at a time
-    for(int y = 0; y < height; y++){
+    // Reset line states
+    for(Line* l = lines; l < lines + lineEnd; l++) {
+        l->x = l->x0;
+        l->y = l->y0;
+        l->err = l->err0;
+    }
+
+    // Sort lines in Y direction
+    sortLines();
+    Line** lStart = sortedLines;
+    Line** lEnd = lStart;
+    Line** lLast = lStart + lineEnd;
+
+    // Render one scanline at a time
+    for(int y = 0; y < height; y++) {
+
+        if((*lStart)->y0 > y) {
+            // No lines yet, just clear scanline
+            for(int x = 0; x < width; x++) {
+                setter(context, x, y, 0);
+            }
+            continue;
+        }
+
+        while((*lStart)->y0 + (*lStart)->dy < y) {
+            lStart++;
+        }
+
+        while(lEnd != lLast && (*lEnd)->y0 <= y) {
+            lEnd++;
+        }
+
         // Clear "inside" state
         for(Poly* p = polys; p < polys + polyEnd; p++) {
             p->inside = 0;
         }
-        // Reset line states
-        for(Line* l = lines; l < lines + lineEnd; l++) {
-            l->x = l->x0;
-            l->y = l->y0;
-            l->err = l->err0;
-        }
+
         int inside = 0;
         for(int x = 0; x < width; x++) {
-            for(Line* l = lines; l < lines + lineEnd; l++) {
-                if(doesPixelCrossLine(x, y, l)) {
-                    Poly* poly = polys + l->owner;
+            for(Line** l = lStart; l < lEnd; l++) {
+                if(doesPixelCrossLine(x, y, *l)) {
+                    Poly* poly = polys + (*l)->owner;
                     poly->inside ^= 1;
                     inside += poly->inside ? 1 : -1;
                 }
@@ -271,4 +323,3 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
         }
     }
 }
-
