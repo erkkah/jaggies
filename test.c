@@ -48,8 +48,8 @@ void animate(Tigr* screen, float time) {
         for(int i = 0; i < innerEdges; i++, p++){
             float x = cosf(edgePhase);
             float y = sinf(edgePhase);
-            p->x = x * 50 + 100;
-            p->y = y * 50 + 100;
+            p->x = x * 90 + 100;
+            p->y = y * 90 + 100;
             edgePhase += edgeInc;
         }
         p->x = -1;
