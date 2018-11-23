@@ -19,3 +19,5 @@ void tinyClear();
 typedef void(*pixelSetter)(void* context, int x, int y, int color);
 
 void tinyRender(int width, int height, pixelSetter, void* context);
+
+void printLines();

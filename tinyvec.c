@@ -7,8 +7,18 @@ typedef tinyPoint Point;
 typedef struct Line {
     int x1, y1;
     int x2, y2;
+
+    // Float based interpolation
     float k;
     float m;
+
+    // Int based interpolation
+    int x, y;
+    int x0, y0;
+    int dx, dy;
+    int sx;
+    int err0, err;
+
     int owner;
     int hpeak;
 } Line;
@@ -25,6 +35,22 @@ Line lines[MAX_LINES];
 
 int polyEnd = 0;
 int lineEnd = 0;
+
+void printLine(Line* l) {
+    printf("l(%d, %d)-(%d, %d) k=%f, m=%f, peak=%d, dx=%d, dy=%d, err=%d\n",
+        l->x1, l->y1,
+        l->x2, l->y2,
+        l->k, l->m, l->hpeak,
+        l->dx, l->dy, l->err
+    );
+}
+
+void printLines() {
+    for(Line* l = lines; l < lines + lineEnd; l++) {
+        printLine(l);
+    }
+}
+
 
 /*
 
@@ -48,6 +74,7 @@ Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
     line->y2 = y2;
     line->owner = owner;
 
+    // Set up float interpolation
     if(x2 == x1) {
         // vertical line marker :)
         line->k = 0;
@@ -56,6 +83,30 @@ Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
         line->k = (float)(y2 - y1) / (float)(x2 - x1);
         line->m = y1 - (line->k * x1);
     }
+
+    // Set up int interpolation
+    if(y1 < y2) {
+        line->x0 = x1;
+        line->y0 = y1;
+
+        line->dx = x2 - x1;
+        line->dy = y2 - y1;
+    } else {
+        line->x0 = x2;
+        line->y0 = y2;
+
+        line->dx = x1 - x2;
+        line->dy = y1 - y2;
+    }
+
+    if(line->dx >= 0) {
+        line->sx = 1;
+    } else {
+        line->dx = -line->dx;
+        line->sx = -1;
+    }
+
+    line->err = (line->dx > line->dy ? line->dx : -line->dy) / 2;
 
     line->hpeak = 0;
     return line;
@@ -149,20 +200,46 @@ int doesPixelCrossLine(int x, int y, Line* l) {
         return 0;
     }
 
+    // Line in y - range?
+    if(l->y1 < l->y2) {
+        if(! ((y > l->y1) && (y < l->y2)) ) {
+            return 0;
+        }
+    } else {
+        if(! ((y > l->y2) && (y < l->y1)) ) {
+            return 0;
+        }
+    }
+
     int hitX = -1;
 
     // Special case for vertical line
     if(l->x1 == l->x2) {
         hitX = l->x1;
     } else {
-        hitX = round((y - l->m) / l->k);
-    }
-    if ((x <= hitX) && (x + 1 > hitX)) {
-        if(l->y1 < l->y2) {
-            return (y >= l->y1) && (y < l->y2);
+        if(0) {
+            // Float interpolation
+            hitX = round((y - l->m) / l->k);
         } else {
-            return (y > l->y2) && (y <= l->y1);
+            // Int interpolation
+            while(l->y < y) {
+                int e = l->err;
+                if(e > -l->dx) {
+                    l->err -= l->dy;
+                    l->x += l->sx;
+                }
+                if(e < l->dy){
+                    l->err += l->dx;
+                    l->y++;
+                }
+            }
+
+            hitX = l->x;
         }
+    }
+
+    if ((x <= hitX) && (x + 1 > hitX)) {
+        return 1;
     } else {
         return 0;
     }
@@ -174,6 +251,12 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
         // Clear "inside" state
         for(Poly* p = polys; p < polys + polyEnd; p++) {
             p->inside = 0;
+        }
+        // Reset line states
+        for(Line* l = lines; l < lines + lineEnd; l++) {
+            l->x = l->x0;
+            l->y = l->y0;
+            l->err = l->err0;
         }
         int inside = 0;
         for(int x = 0; x < width; x++) {
@@ -189,12 +272,3 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
     }
 }
 
-void printLines() {
-    for(Line* l = lines; l < lines + lineEnd; l++) {
-        printf("l(%d, %d)-(%d, %d) k=%f, m=%f, peak=%d\n",
-            l->x1, l->y1,
-            l->x2, l->y2,
-            l->k, l->m, l->hpeak
-        );
-    }
-}
