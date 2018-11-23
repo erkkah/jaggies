@@ -319,7 +319,7 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
                     inside += poly->inside ? 1 : -1;
                 }
             }
-            setter(context, x, y, inside);
+            setter(context, x, y, inside ? 1 : 0);
         }
     }
 }
