@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "tinyvec.h"
+#include "jaggies.h"
 
 void setPixel(void* context, int x, int y, int c) {
     Tigr* bmp = (Tigr*) context;
@@ -24,8 +24,8 @@ void animate(Tigr* screen, float time) {
 
     const int outerEdges = 5;
     const int innerEdges = 4;
-    tinyPoint points[outerEdges + 1 + innerEdges + 1];
-    tinyPoint* p = points;
+    jaggiePoint points[outerEdges + 1 + innerEdges + 1];
+    jaggiePoint* p = points;
 
     {
         float edgePhase = pos1;
@@ -56,26 +56,26 @@ void animate(Tigr* screen, float time) {
         p->y = -1;
     }
 
-    tinyClear();
-    tinyPoly(points);
+    jaggieClear();
+    jaggiePoly(points);
 
-    tinyPoint bar[] = {
+    jaggiePoint bar[] = {
         {5, 95},
         {195, 95},
         {195, 105},
         {5, 105},
         {-1, -1}
     };
-    tinyPoly(bar);
+    jaggiePoly(bar);
 
     int lineStart = (int)(100.f * sinf(pos2) + 100.f);
     int lineEnd = 199 - lineStart;
 
-    tinyLine(10, lineStart, 189, lineEnd);
+    jaggieLine(10, lineStart, 189, lineEnd);
 }
 
 int main() {
-    Tigr *screen = tigrWindow(200, 200, "tinyvec", TIGR_FIXED);
+    Tigr *screen = tigrWindow(200, 200, "jaggies", TIGR_FIXED);
 
     int pause = 0;
     int markers = 0;
@@ -93,7 +93,7 @@ int main() {
         if(pause == 0) {
             animate(screen, now);
         }
-        tinyRender(200, 200, setPixel, screen);
+        jaggieRender(200, 200, setPixel, screen);
 
         if(markers) {
             tigrPlot(screen, 0, 0, tigrRGB(0xff, 0, 0));

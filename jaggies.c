@@ -1,25 +1,22 @@
-#include "tinyvec.h"
+#include "jaggies.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef tinyPoint Point;
+typedef jaggiePoint Point;
 
 typedef struct Line {
     int x1, y1;
     int x2, y2;
 
-    // Float based interpolation
-    float k;
-    float m;
-
-    // Int based interpolation
+    // Line interpolation state
     int x, y;
     int x0, y0;
     int dx, dy;
     int sx;
     int err0, err;
 
+    // Polygon owner, -1 for free lines.
     int owner;
     int hpeak;
 } Line;
@@ -28,32 +25,21 @@ typedef struct Poly {
     int inside;
 } Poly;
 
-const int MAX_POLYS = 256;
-static Poly polys[MAX_POLYS];
+#ifndef JAGGIES_MAX_POLYS
+#define JAGGIES_MAX_POLYS 128
+#endif
 
-const int MAX_LINES = 1024;
-static Line lines[MAX_LINES];
-static Line* sortedLines[MAX_LINES];
+#ifndef JAGGIES_MAX_LINES
+#define JAGGIES_MAX_LINES 512
+#endif
+
+static Poly polys[JAGGIES_MAX_POLYS];
+static Line lines[JAGGIES_MAX_LINES];
+static Line* sortedLines[JAGGIES_MAX_LINES];
 
 static int polyEnd = 0;
 static int lineEnd = 0;
-
 static int sorted = 0;
-
-static void printLine(Line* l) {
-    printf("l(%d, %d)-(%d, %d) k=%f, m=%f, peak=%d, dx=%d, dy=%d, y0=%d, err=%d\n",
-        l->x1, l->y1,
-        l->x2, l->y2,
-        l->k, l->m, l->hpeak,
-        l->dx, l->dy, l->y0, l->err
-    );
-}
-
-static void printLines() {
-    for(Line** l = sortedLines; l < sortedLines + lineEnd; l++) {
-        printLine(*l);
-    }
-}
 
 static int lineCompareY0(const void* a, const void* b) {
     return (*(Line**)a)->y0 - (*(Line**)b)->y0;
@@ -81,7 +67,7 @@ lines bleeding to the right.
 */
 
 static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
-    if(lineEnd == MAX_LINES) {
+    if(lineEnd == JAGGIES_MAX_LINES) {
         return 0;
     }
 
@@ -92,16 +78,6 @@ static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
     line->x2 = x2;
     line->y2 = y2;
     line->owner = owner;
-
-    // Set up float interpolation
-    if(x2 == x1) {
-        // vertical line marker :)
-        line->k = 0;
-        line->m = 666;
-    } else {
-        line->k = (float)(y2 - y1) / (float)(x2 - x1);
-        line->m = y1 - (line->k * x1);
-    }
 
     // Set up int interpolation
     if(y1 < y2) {
@@ -153,8 +129,8 @@ static void setHorizontalPeak(Line* current, Line* prev) {
 // Auto closes between start and end points.
 // Separate segments (for cut-outs) with x = -2.
 // Terminate list with x = -1.
-int tinyPoly(Point* points) {
-    if(polyEnd == MAX_POLYS) {
+int jaggiePoly(Point* points) {
+    if(polyEnd == JAGGIES_MAX_POLYS) {
         return 0;
     }
 
@@ -208,23 +184,12 @@ int tinyPoly(Point* points) {
     return 1;
 }
 
-int tinyLine(int x1, int y1, int x2, int y2) {
+int jaggieLine(int x1, int y1, int x2, int y2) {
     Line* line = addLinePrimitive(x1, y1, x2, y2, -1);
     return line != 0;
 }
 
-int old_tinyLine(int x1, int y1, int x2, int y2) {
-    Point points[5] = {
-        {x1, y1},
-        {x2, y2},
-        {x2, y2 + 1},
-        {x1, y1 + 1},
-        {-1, -1}
-    };
-    return tinyPoly(points);
-}
-
-void tinyClear() {
+void jaggieClear() {
     polyEnd = 0;
     lineEnd = 0;
 }
@@ -259,25 +224,20 @@ static int doesPixelCrossLine(int x, int y, Line* l) {
     if(l->x1 == l->x2) {
         hitX = l->x1;
     } else {
-        if(0) {
-            // Float interpolation
-            hitX = round((y - l->m) / l->k);
-        } else {
-            // Int interpolation
-            while(l->y < y) {
-                int e = l->err;
-                if(e > -l->dx) {
-                    l->err -= l->dy;
-                    l->x += l->sx;
-                }
-                if(e < l->dy){
-                    l->err += l->dx;
-                    l->y++;
-                }
+        // Integer line interpolation
+        while(l->y < y) {
+            int e = l->err;
+            if(e > -l->dx) {
+                l->err -= l->dy;
+                l->x += l->sx;
             }
-
-            hitX = l->x;
+            if(e < l->dy){
+                l->err += l->dx;
+                l->y++;
+            }
         }
+
+        hitX = l->x;
     }
 
     if ((x <= hitX) && (x + 1 > hitX)) {
@@ -296,6 +256,7 @@ int rowPixelsInLine(int x, int y, Line* l) {
             return (x >= l->x2) && (x <= l->x1);
         }
     }
+
     // Check end cases
     if(l->y1 < l->y2) {
         if(y > l->y2){
@@ -306,6 +267,9 @@ int rowPixelsInLine(int x, int y, Line* l) {
             return 0;
         }
     }
+
+    // Integer line interpolation
+    // Work up to current line
     while(l->y < y) {
         int e = l->err;
         if(e > -l->dx) {
@@ -318,6 +282,7 @@ int rowPixelsInLine(int x, int y, Line* l) {
         }
     }
 
+    // Find the number of pixels to draw in this row
     int lx = l->x;
     int err = l->err;
     int result = 0;
@@ -340,7 +305,7 @@ int rowPixelsInLine(int x, int y, Line* l) {
     return 0;
 }
 
-void tinyRender(int width, int height, pixelSetter setter, void* context) {
+void jaggieRender(int width, int height, pixelSetter setter, void* context) {
     if(lineEnd == 0) {
         return;
     }
