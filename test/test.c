@@ -4,7 +4,7 @@
 
 #include "jaggies.h"
 
-void setPixel(void* context, int x, int y, int c) {
+void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, JAGGIE_INT c) {
     Tigr* bmp = (Tigr*) context;
     tigrPlot(bmp, x, y, c ? tigrRGB(0xff, 0xff, 0xff) : tigrRGB(0x22, 0x22, 0x22));
 }
@@ -75,6 +75,7 @@ void animate(Tigr* screen, float time) {
 }
 
 int main() {
+    printf("Point size: %ld\n", sizeof(jaggiePoint));
     Tigr *screen = tigrWindow(200, 200, "jaggies", TIGR_FIXED);
 
     int pause = 0;

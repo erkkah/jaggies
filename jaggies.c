@@ -6,32 +6,24 @@
 typedef jaggiePoint Point;
 
 typedef struct Line {
-    int x1, y1;
-    int x2, y2;
+    JAGGIE_INT x1, y1;
+    JAGGIE_INT x2, y2;
 
     // Line interpolation state
-    int x, y;
-    int x0, y0;
-    int dx, dy;
-    int sx;
-    int err0, err;
+    JAGGIE_INT x, y;
+    JAGGIE_INT y0;
+    JAGGIE_INT dx, dy;
+    char sx;
+    JAGGIE_INT err0, err;
 
     // Polygon owner, -1 for free lines.
     int owner;
-    int hpeak;
+    char hpeak;
 } Line;
 
 typedef struct Poly {
-    int inside;
+    JAGGIE_INT inside;
 } Poly;
-
-#ifndef JAGGIES_MAX_POLYS
-#define JAGGIES_MAX_POLYS 128
-#endif
-
-#ifndef JAGGIES_MAX_LINES
-#define JAGGIES_MAX_LINES 512
-#endif
 
 static Poly polys[JAGGIES_MAX_POLYS];
 static Line lines[JAGGIES_MAX_LINES];
@@ -42,7 +34,13 @@ static int lineEnd = 0;
 static int sorted = 0;
 
 static int lineCompareY0(const void* a, const void* b) {
-    return (*(Line**)a)->y0 - (*(Line**)b)->y0;
+    Line* l1 = *(Line**)a;
+    Line* l2 = *(Line**)b;
+
+    JAGGIE_INT aTop = l1->y0;
+    JAGGIE_INT bTop = l2->y0;
+
+    return aTop - bTop;
 }
 
 static void sortLines() {
@@ -66,7 +64,7 @@ lines bleeding to the right.
 
 */
 
-static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
+static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner) {
     if(lineEnd == JAGGIES_MAX_LINES) {
         return 0;
     }
@@ -81,13 +79,11 @@ static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
 
     // Set up int interpolation
     if(y1 < y2) {
-        line->x0 = x1;
         line->y0 = y1;
 
         line->dx = x2 - x1;
         line->dy = y2 - y1;
     } else {
-        line->x0 = x2;
         line->y0 = y2;
 
         line->dx = x1 - x2;
@@ -103,7 +99,7 @@ static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
 
     line->dx *= 2;
     line->dy *= 2;
-    line->err = (line->dx > line->dy) ? line->dx : -line->dy;
+    line->err0 = (line->dx > line->dy) ? line->dx : -line->dy;
 
     line->hpeak = 0;
 
@@ -129,7 +125,7 @@ static void setHorizontalPeak(Line* current, Line* prev) {
 // Auto closes between start and end points.
 // Separate segments (for cut-outs) with x = -2.
 // Terminate list with x = -1.
-int jaggiePoly(Point* points) {
+JAGGIE_INT jaggiePoly(Point* points) {
     if(polyEnd == JAGGIES_MAX_POLYS) {
         return 0;
     }
@@ -184,7 +180,7 @@ int jaggiePoly(Point* points) {
     return 1;
 }
 
-int jaggieLine(int x1, int y1, int x2, int y2) {
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2) {
     Line* line = addLinePrimitive(x1, y1, x2, y2, -1);
     return line != 0;
 }
@@ -194,7 +190,7 @@ void jaggieClear() {
     lineEnd = 0;
 }
 
-static int doesPixelCrossLine(int x, int y, Line* l) {
+static int doesPixelCrossLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
 
     // Special case covers half open interval start
     // and horizontal peaks.
@@ -218,7 +214,7 @@ static int doesPixelCrossLine(int x, int y, Line* l) {
         }
     }
 
-    int hitX = -1;
+    JAGGIE_INT hitX = -1;
 
     // Special case for vertical line
     if(l->x1 == l->x2) {
@@ -226,7 +222,7 @@ static int doesPixelCrossLine(int x, int y, Line* l) {
     } else {
         // Integer line interpolation
         while(l->y < y) {
-            int e = l->err;
+            JAGGIE_INT e = l->err;
             if(e > -l->dx) {
                 l->err -= l->dy;
                 l->x += l->sx;
@@ -247,7 +243,7 @@ static int doesPixelCrossLine(int x, int y, Line* l) {
     }
 }
 
-int rowPixelsInLine(int x, int y, Line* l) {
+JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     // Horizontal line special case
     if(l->y1 == l->y2){
         if(l->x1 < l->x2) {
@@ -271,7 +267,7 @@ int rowPixelsInLine(int x, int y, Line* l) {
     // Integer line interpolation
     // Work up to current line
     while(l->y < y) {
-        int e = l->err;
+        JAGGIE_INT e = l->err;
         if(e > -l->dx) {
             l->err -= l->dy;
             l->x += l->sx;
@@ -283,15 +279,15 @@ int rowPixelsInLine(int x, int y, Line* l) {
     }
 
     // Find the number of pixels to draw in this row
-    int lx = l->x;
-    int err = l->err;
-    int result = 0;
+    JAGGIE_INT lx = l->x;
+    JAGGIE_INT err = l->err;
+    JAGGIE_INT result = 0;
 
     while(1){
         if(lx == x) {
             return result || 1;
         }
-        int e = err;
+        JAGGIE_INT e = err;
         if(e > -l->dx) {
             err -= l->dy;
             lx += l->sx;
@@ -305,15 +301,21 @@ int rowPixelsInLine(int x, int y, Line* l) {
     return 0;
 }
 
-void jaggieRender(int width, int height, pixelSetter setter, void* context) {
+void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void* context) {
+    printf("Poly:%ld + Line:%ld + Sorted:%ld\n", sizeof(polys), sizeof(lines), sizeof(sortedLines));
     if(lineEnd == 0) {
         return;
     }
 
     // Reset line states
     for(Line* l = lines; l < lines + lineEnd; l++) {
-        l->x = l->x0;
-        l->y = l->y0;
+        if(l->y1 < l->y2) {
+            l->x = l->x1;
+            l->y = l->y1;
+        } else {
+            l->x = l->x2;
+            l->y = l->y2;
+        }
         l->err = l->err0;
     }
 
@@ -324,11 +326,11 @@ void jaggieRender(int width, int height, pixelSetter setter, void* context) {
     Line** lLast = lStart + lineEnd;
 
     // Render one scanline at a time
-    for(int y = 0; y < height; y++) {
+    for(JAGGIE_INT y = 0; y < height; y++) {
 
         if(lStart == lLast || ((*lStart)->y0 > y)) {
             // No lines yet, just clear scanline
-            for(int x = 0; x < width; x++) {
+            for(JAGGIE_INT x = 0; x < width; x++) {
                 setter(context, x, y, 0);
             }
             continue;
@@ -347,9 +349,9 @@ void jaggieRender(int width, int height, pixelSetter setter, void* context) {
             p->inside = 0;
         }
 
-        int inside = 0;
-        int inLine = 0;
-        for(int x = 0; x < width; x++) {
+        JAGGIE_INT inside = 0;
+        JAGGIE_INT inLine = 0;
+        for(JAGGIE_INT x = 0; x < width; x++) {
             for(Line** l = lStart; l < lEnd; l++) {
                 int owner = (*l)->owner;
                 if(owner == -1) {

@@ -30,9 +30,21 @@ Example use:
 
 */
 
+#ifndef JAGGIE_INT
+#define JAGGIE_INT short
+#endif
+
+#ifndef JAGGIES_MAX_POLYS
+#define JAGGIES_MAX_POLYS 16
+#endif
+
+#ifndef JAGGIES_MAX_LINES
+#define JAGGIES_MAX_LINES (JAGGIES_MAX_POLYS*3)
+#endif
+
 // Point type
 typedef struct Point {
-    int x, y;
+    JAGGIE_INT x, y;
 } jaggiePoint;
 
 // Add a polygon to the render state.
@@ -42,17 +54,21 @@ typedef struct Point {
 // This can be used to cut a hole in a polygon.
 // The last coordinate in each segment connects
 // back to the first coordinate.
-int jaggiePoly(jaggiePoint* points);
+//
+// Returns zero on failure.
+JAGGIE_INT jaggiePoly(jaggiePoint* points);
 
 // Add a line to the render state.
 // The start and end coordinates are included in the line drawn.
-int jaggieLine(int x1, int y1, int x2, int y2);
+//
+// Returns zero on failure.
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2);
 
 // Clear the render state
 void jaggieClear();
 
 // Pixel setter callback. Color is 0 or 1.
-typedef void(*pixelSetter)(void* context, int x, int y, int color);
+typedef void(*pixelSetter)(void* context, JAGGIE_INT x, JAGGIE_INT y, JAGGIE_INT color);
 
 // Render the state using the provided pixel setter
-void jaggieRender(int width, int height, pixelSetter, void* context);
+void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter, void* context);
