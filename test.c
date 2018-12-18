@@ -71,25 +71,37 @@ void animate(Tigr* screen, float time) {
     int lineStart = (int)(100.f * sinf(pos2) + 100.f);
     int lineEnd = 199 - lineStart;
 
-    tinyLine(0, lineStart, 199, lineEnd);
+    tinyLine(10, lineStart, 189, lineEnd);
 }
 
 int main() {
-    Tigr *screen = tigrWindow(200, 200, "e-ink", TIGR_FIXED);
+    Tigr *screen = tigrWindow(200, 200, "tinyvec", TIGR_FIXED);
 
     int pause = 0;
+    int markers = 0;
 
-    while (!tigrClosed(screen))
+    while (!tigrClosed(screen) && !tigrKeyDown(screen, TK_ESCAPE))
     {
         float now = tigrTime();
-        if(tigrReadChar(screen) != 0) {
+        int key = tigrReadChar(screen);
+        if(key == ' ') {
             pause ^= 1;
+        } else if (key == 'm') {
+            markers ^= 1;
         }
         tigrClear(screen, tigrRGB(0x00, 0x00, 0x00));
         if(pause == 0) {
             animate(screen, now);
         }
         tinyRender(200, 200, setPixel, screen);
+
+        if(markers) {
+            tigrPlot(screen, 0, 0, tigrRGB(0xff, 0, 0));
+            tigrPlot(screen, 199, 0, tigrRGB(0xff, 0, 0));
+            tigrPlot(screen, 199, 199, tigrRGB(0xff, 0, 0));
+            tigrPlot(screen, 0, 199, tigrRGB(0xff, 0, 0));
+        }
+
         tigrUpdate(screen);
     }
     tigrFree(screen);

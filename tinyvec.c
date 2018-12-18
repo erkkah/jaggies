@@ -81,6 +81,10 @@ lines bleeding to the right.
 */
 
 static Line* addLinePrimitive(int x1, int y1, int x2, int y2, int owner) {
+    if(lineEnd == MAX_LINES) {
+        return 0;
+    }
+
     int lineID = lineEnd++;
     Line* line = lines + lineID;
     line->x1 = x1;
@@ -169,6 +173,9 @@ int tinyPoly(Point* points) {
 
         while(p2->x >= 0) {
             current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID);
+            if(!current) {
+                return 0;
+            }
             if(first == 0){
                 first = current;
             } else {
@@ -185,6 +192,9 @@ int tinyPoly(Point* points) {
         }
 
         current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID);
+        if(!current){
+            return 0;
+        }
         setHorizontalPeak(current, prev);
         setHorizontalPeak(first, current);
 
@@ -199,6 +209,11 @@ int tinyPoly(Point* points) {
 }
 
 int tinyLine(int x1, int y1, int x2, int y2) {
+    Line* line = addLinePrimitive(x1, y1, x2, y2, -1);
+    return line != 0;
+}
+
+int old_tinyLine(int x1, int y1, int x2, int y2) {
     Point points[5] = {
         {x1, y1},
         {x2, y2},
@@ -272,7 +287,64 @@ static int doesPixelCrossLine(int x, int y, Line* l) {
     }
 }
 
+int rowPixelsInLine(int x, int y, Line* l) {
+    // Horizontal line special case
+    if(l->y1 == l->y2){
+        if(l->x1 < l->x2) {
+            return (x >= l->x1) && (x <= l->x2);
+        } else {
+            return (x >= l->x2) && (x <= l->x1);
+        }
+    }
+    // Check end cases
+    if(l->y1 < l->y2) {
+        if(y > l->y2){
+            return 0;
+        }
+    } else {
+        if(y > l->y1){
+            return 0;
+        }
+    }
+    while(l->y < y) {
+        int e = l->err;
+        if(e > -l->dx) {
+            l->err -= l->dy;
+            l->x += l->sx;
+        }
+        if(e < l->dy){
+            l->err += l->dx;
+            l->y++;
+        }
+    }
+
+    int lx = l->x;
+    int err = l->err;
+    int result = 0;
+
+    while(1){
+        if(lx == x) {
+            return result || 1;
+        }
+        int e = err;
+        if(e > -l->dx) {
+            err -= l->dy;
+            lx += l->sx;
+            result++;
+        }
+        if(e < l->dy){
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
 void tinyRender(int width, int height, pixelSetter setter, void* context) {
+    if(lineEnd == 0) {
+        return;
+    }
+
     // Reset line states
     for(Line* l = lines; l < lines + lineEnd; l++) {
         l->x = l->x0;
@@ -289,7 +361,7 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
     // Render one scanline at a time
     for(int y = 0; y < height; y++) {
 
-        if((*lStart)->y0 > y) {
+        if(lStart == lLast || ((*lStart)->y0 > y)) {
             // No lines yet, just clear scanline
             for(int x = 0; x < width; x++) {
                 setter(context, x, y, 0);
@@ -297,7 +369,7 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
             continue;
         }
 
-        while((*lStart)->y0 + (*lStart)->dy < y) {
+        while(lStart != lLast && ((*lStart)->y0 + (*lStart)->dy < y)) {
             lStart++;
         }
 
@@ -311,15 +383,26 @@ void tinyRender(int width, int height, pixelSetter setter, void* context) {
         }
 
         int inside = 0;
+        int inLine = 0;
         for(int x = 0; x < width; x++) {
             for(Line** l = lStart; l < lEnd; l++) {
-                if(doesPixelCrossLine(x, y, *l)) {
-                    Poly* poly = polys + (*l)->owner;
-                    poly->inside ^= 1;
-                    inside += poly->inside ? 1 : -1;
+                int owner = (*l)->owner;
+                if(owner == -1) {
+                    inLine += rowPixelsInLine(x, y, *l);
+                } else {
+                    if(doesPixelCrossLine(x, y, *l)) {
+                        Poly* poly = polys + owner;
+                        poly->inside ^= 1;
+                        inside += poly->inside ? 1 : -1;
+                    }
                 }
             }
-            setter(context, x, y, inside ? 1 : 0);
+            if(inLine > 0){
+                setter(context, x, y, 1);
+                inLine--;
+            } else {
+                setter(context, x, y, inside ? 1 : 0);
+            }
         }
     }
 }

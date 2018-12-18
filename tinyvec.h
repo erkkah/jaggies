@@ -7,6 +7,8 @@ The scene is prepared by adding polygons and lines, and is then rendered
 in one continuous flow, one pixel at a time.
 
 Each call to `tinyRender` draws all pixels in the destination.
+The pixels are guaranteed to be drawn in sequence, row by row,
+by calling the provided pixel setter.
 
 Example:
 
