@@ -302,7 +302,6 @@ JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
 }
 
 void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void* context) {
-    printf("Poly:%ld + Line:%ld + Sorted:%ld\n", sizeof(polys), sizeof(lines), sizeof(sortedLines));
     if(lineEnd == 0) {
         return;
     }
