@@ -4,7 +4,7 @@ Jaggies - a tiny vector graphics library
 
 Example use:
 
-  void setPixel(void* context, int x, int y, int color) {
+  void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, char color) {
     SomeBitmap* bmp = (SomeBitmap*) context;
     ...
   }
@@ -34,41 +34,68 @@ Example use:
 #define JAGGIE_INT short
 #endif
 
-#ifndef JAGGIES_MAX_POLYS
-#define JAGGIES_MAX_POLYS 16
+#ifndef JAGGIE_MAX_POLYS
+#define JAGGIE_MAX_POLYS 16
 #endif
 
-#ifndef JAGGIES_MAX_LINES
-#define JAGGIES_MAX_LINES (JAGGIES_MAX_POLYS*3)
+#ifndef JAGGIE_MAX_LINES
+#define JAGGIE_MAX_LINES (JAGGIE_MAX_POLYS*3)
 #endif
 
-// Point type
+/*
+  Point type
+*/
 typedef struct Point {
     JAGGIE_INT x, y;
 } jaggiePoint;
 
-// Add a polygon to the render state.
-// End the list with a {-1, -1} point.
-// Several sections can be added to the same
-// polygon by separating the sections with {-2, -2}.
-// This can be used to cut a hole in a polygon.
-// The last coordinate in each segment connects
-// back to the first coordinate.
-//
-// Returns zero on failure.
+
+/*
+  Adds a polygon to the render state.
+  Polygons are described by a list of points
+  terminated by a (-1, -1) point. Polygons
+  are automatically closed, there is no need
+  to repeat the first point.
+
+  Multiple sections can optionally be added to the same
+  polygon by separating the sections with (-2, -2) points.
+
+  This can be used to cut a hole in a polygon.
+
+  Returns zero on failure.
+*/
 JAGGIE_INT jaggiePoly(jaggiePoint* points);
 
-// Add a line to the render state.
-// The start and end coordinates are included in the line drawn.
-//
-// Returns zero on failure.
+/*
+  Adds a line to the render state.
+
+  The start and end pixels are included in the line drawn.
+
+  Returns zero on failure.
+*/
 JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2);
 
-// Clear the render state
+/*
+  Clears the render state
+*/
 void jaggieClear();
 
-// Pixel setter callback. Color is 0 or 1.
-typedef void(*pixelSetter)(void* context, JAGGIE_INT x, JAGGIE_INT y, JAGGIE_INT color);
+/*
+  Pixel setter callback.
+  
+  Will always be called sequentially, row by row, from top to bottom,
+  to cover the whole frame specified by the current call to `jaggieRender`.
+  The (x, y) coordinates are just passed on for convenience.
 
-// Render the state using the provided pixel setter
+  Color is 0 or 1.
+*/
+typedef void(*pixelSetter)(void* context, JAGGIE_INT x, JAGGIE_INT y, char color);
+
+
+/*
+  Renders the current state to a frame of size (width, height)
+  using the provided pixel setter.
+
+  The generic context will be passed on to the pixel setter.
+*/
 void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter, void* context);

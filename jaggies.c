@@ -1,6 +1,4 @@
 #include "jaggies.h"
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 typedef jaggiePoint Point;
@@ -25,9 +23,9 @@ typedef struct Poly {
     JAGGIE_INT inside;
 } Poly;
 
-static Poly polys[JAGGIES_MAX_POLYS];
-static Line lines[JAGGIES_MAX_LINES];
-static Line* sortedLines[JAGGIES_MAX_LINES];
+static Poly polys[JAGGIE_MAX_POLYS];
+static Line lines[JAGGIE_MAX_LINES];
+static Line* sortedLines[JAGGIE_MAX_LINES];
 
 static int polyEnd = 0;
 static int lineEnd = 0;
@@ -65,7 +63,7 @@ lines bleeding to the right.
 */
 
 static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner) {
-    if(lineEnd == JAGGIES_MAX_LINES) {
+    if(lineEnd == JAGGIE_MAX_LINES) {
         return 0;
     }
 
@@ -126,7 +124,7 @@ static void setHorizontalPeak(Line* current, Line* prev) {
 // Separate segments (for cut-outs) with x = -2.
 // Terminate list with x = -1.
 JAGGIE_INT jaggiePoly(Point* points) {
-    if(polyEnd == JAGGIES_MAX_POLYS) {
+    if(polyEnd == JAGGIE_MAX_POLYS) {
         return 0;
     }
 
@@ -191,7 +189,6 @@ void jaggieClear() {
 }
 
 static int doesPixelCrossLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
-
     // Special case covers half open interval start
     // and horizontal peaks.
     if(x == l->x1 && y == l->y1) {
