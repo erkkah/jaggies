@@ -11,5 +11,10 @@ else
 	endif
 endif
 
+all: test
+
+tigr/tigr.c:
+	git submodule update --init
+
 test : test.c ./tigr/tigr.c ../jaggies.c
 	gcc $^ -s -Os -o $@ $(CFLAGS) $(LDFLAGS)

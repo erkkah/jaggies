@@ -76,3 +76,5 @@ These are set to relatively low levels (`short int` coordinates, 16 polygons and
 * Jaggies is designed for limited memory situations, it is not your fastest pixel pushing friend. But that's OK.
 
 * Jaggies uses a global state which makes drawing several scenes at the same time impossible. Also fine.
+
+* Special valued coordinates (-1, -1) and (-2, -2) cannot be used for drawing. This is a bad design choice! Yeah, I know. This might get fixed some day.
