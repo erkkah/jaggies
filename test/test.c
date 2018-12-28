@@ -72,6 +72,12 @@ void animate(Tigr* screen, float time) {
     int lineEnd = 199 - lineStart;
 
     jaggieLine(10, lineStart, 189, lineEnd);
+
+    jaggieLine(0, 5, 5, 0);
+    jaggieLine(0, 0, 5, 5);
+
+    jaggieLine(5, 10, 0, 15);
+    jaggieLine(5, 15, 0, 10);
 }
 
 int main() {

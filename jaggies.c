@@ -16,7 +16,13 @@ typedef struct Line {
 
     // Polygon owner, -1 for free lines.
     int owner;
-    char hpeak;
+    union {
+        // This polygon line starts at a horizontal peak
+        JAGGIE_INT hpeak;
+
+        // The number of pixels to draw to complete this free line
+        JAGGIE_INT lrem;
+    };
 } Line;
 
 typedef struct Poly {
@@ -95,9 +101,8 @@ static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGI
         line->sx = -1;
     }
 
-    line->dx *= 2;
-    line->dy *= 2;
     line->err0 = (line->dx > line->dy) ? line->dx : -line->dy;
+    line->err0 /= 2;
 
     line->hpeak = 0;
 
@@ -250,13 +255,27 @@ JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
         }
     }
 
+    JAGGIE_INT startX = 0;
+
     // Check end cases
     if(l->y1 < l->y2) {
+        startX = l->x1;
         if(y > l->y2){
             return 0;
         }
     } else {
+        startX = l->x2;
         if(y > l->y1){
+            return 0;
+        }
+    }
+
+    if(l->x1 < l->x2) {
+        if(x < l->x1 || x > l->x2){
+            return 0;
+        }
+    } else {
+        if(x < l->x2 || x > l->x1){
             return 0;
         }
     }
@@ -268,6 +287,7 @@ JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
         if(e > -l->dx) {
             l->err -= l->dy;
             l->x += l->sx;
+            l->lrem++;
         }
         if(e < l->dy){
             l->err += l->dx;
@@ -275,14 +295,23 @@ JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
         }
     }
 
+    // Make sure to draw the first pixel
+    if(startX == x && l->y0 == y) {
+        return 1;
+    }
+
     // Find the number of pixels to draw in this row
     JAGGIE_INT lx = l->x;
     JAGGIE_INT err = l->err;
     JAGGIE_INT result = 0;
-
+    
     while(1){
         if(lx == x) {
-            return result || 1;
+            l->x = lx;
+            l->err = err;
+            result += l->lrem;
+            l->lrem = 0;
+            return result == 0 ? 1 : result;
         }
         JAGGIE_INT e = err;
         if(e > -l->dx) {
@@ -313,6 +342,9 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
             l->y = l->y2;
         }
         l->err = l->err0;
+        if(l->owner == -1) {
+            l->lrem = 0;
+        }
     }
 
     // Sort lines in Y direction
@@ -351,7 +383,10 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
             for(Line** l = lStart; l < lEnd; l++) {
                 int owner = (*l)->owner;
                 if(owner == -1) {
-                    inLine += rowPixelsInLine(x, y, *l);
+                    JAGGIE_INT pixels = rowPixelsInLine(x, y, *l);
+                    if(pixels > inLine) {
+                        inLine = pixels;
+                    }
                 } else {
                     if(doesPixelCrossLine(x, y, *l)) {
                         Poly* poly = polys + owner;
