@@ -247,7 +247,7 @@ static int doesPixelCrossLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
 
 JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     // Horizontal line special case
-    if(l->y1 == l->y2){
+    if(y == l->y1 && l->y1 == l->y2){
         if(l->x1 < l->x2) {
             return (x >= l->x1) && (x <= l->x2);
         } else {
