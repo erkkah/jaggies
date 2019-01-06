@@ -222,6 +222,16 @@ static int doesPixelCrossLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     if(l->x1 == l->x2) {
         hitX = l->x1;
     } else {
+        // Line in x - range?
+        if(l->x1 < l->x2) {
+            if(x + 1 < l->x1) {
+                return 0;
+            }
+        } else {
+            if(x + 1 < l->x2) {
+                return 0;
+            }
+        }
         // Integer line interpolation
         while(l->y < y) {
             JAGGIE_INT e = l->err;
@@ -383,9 +393,8 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
             for(Line** l = lStart; l < lEnd; l++) {
                 int owner = (*l)->owner;
                 if(owner == -1) {
-                    JAGGIE_INT pixels = rowPixelsInLine(x, y, *l);
-                    if(pixels > inLine) {
-                        inLine = pixels;
+                    if(inLine == 0) {
+                        inLine = rowPixelsInLine(x, y, *l);
                     }
                 } else {
                     if(doesPixelCrossLine(x, y, *l)) {

@@ -4,9 +4,17 @@
 
 #include "jaggies.h"
 
+TPixel white = {
+    0xff, 0xff, 0xff, 0xff
+};
+
+TPixel gray = {
+    0x22, 0x22, 0x22, 0xff
+};
+
 void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, char c) {
     Tigr* bmp = (Tigr*) context;
-    tigrPlot(bmp, x, y, c ? tigrRGB(0xff, 0xff, 0xff) : tigrRGB(0x22, 0x22, 0x22));
+    tigrPlot(bmp, x, y, c ? white : gray);
 }
 
 void animate(Tigr* screen, float time) {
