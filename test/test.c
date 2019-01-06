@@ -12,9 +12,14 @@ TPixel gray = {
     0x22, 0x22, 0x22, 0xff
 };
 
-void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, char c) {
-    Tigr* bmp = (Tigr*) context;
-    tigrPlot(bmp, x, y, c ? white : gray);
+typedef struct JContext {
+    TPixel* bmp;
+} JContext;
+
+void setPixel(void* context, char c) {
+    JContext* jc = (JContext*) context;
+    *(jc->bmp) = c ? white : gray;
+    jc->bmp++;
 }
 
 void animate(Tigr* screen, float time) {
@@ -110,7 +115,11 @@ int main() {
         if(pause == 0) {
             animate(screen, now);
         }
-        jaggieRender(200, 200, setPixel, screen);
+
+        JContext jc = {
+            screen->pix
+        };
+        jaggieRender(200, 200, setPixel, &jc);
 
         if(markers) {
             tigrPlot(screen, 0, 0, tigrRGB(0xff, 0, 0));
