@@ -367,9 +367,9 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
     for(JAGGIE_INT y = 0; y < height; y++) {
 
         if(lStart == lLast || ((*lStart)->y0 > y)) {
-            // No lines yet, just clear scanline
+            // No lines here, just clear scanline
             for(JAGGIE_INT x = 0; x < width; x++) {
-                setter(context, x, y, 0);
+                setter(context, 0);
             }
             continue;
         }
@@ -405,10 +405,10 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
                 }
             }
             if(inLine > 0){
-                setter(context, x, y, 1);
+                setter(context, 1);
                 inLine--;
             } else {
-                setter(context, x, y, inside ? 1 : 0);
+                setter(context, inside ? 1 : 0);
             }
         }
     }

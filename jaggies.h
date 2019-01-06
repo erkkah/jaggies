@@ -85,11 +85,10 @@ void jaggieClear();
   
   Will always be called sequentially, row by row, from top to bottom,
   to cover the whole frame specified by the current call to `jaggieRender`.
-  The (x, y) coordinates are just passed on for convenience.
 
   Color is 0 or 1.
 */
-typedef void(*pixelSetter)(void* context, JAGGIE_INT x, JAGGIE_INT y, char color);
+typedef void(*pixelSetter)(void* context, char color);
 
 
 /*
