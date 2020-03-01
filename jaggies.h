@@ -65,7 +65,7 @@ typedef struct Point {
 
   Returns zero on failure.
 */
-JAGGIE_INT jaggiePoly(jaggiePoint* points);
+JAGGIE_INT jaggiePoly(jaggiePoint* points, char color);
 
 /*
   Adds a line to the render state.
@@ -74,7 +74,7 @@ JAGGIE_INT jaggiePoly(jaggiePoint* points);
 
   Returns zero on failure.
 */
-JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2);
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, char color);
 
 /*
   Clears the render state
