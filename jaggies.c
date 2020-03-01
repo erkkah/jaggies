@@ -124,10 +124,17 @@ static void setHorizontalPeak(Line* current, Line* prev) {
     }
 }
 
-// Points in clock-wise order.
+// First point contains vertex count and if the
+// current segment is the last.
+//
+// To draw a 4 vertice polygon, the first point is
+// {4, 1}
+//
+// To draw multi segment polygons, all segments
+// before the last should be {x, 0}.
+//
+// Keep points in clock-wise order.
 // Auto closes between start and end points.
-// Separate segments (for cut-outs) with x = -2.
-// Terminate list with x = -1.
 JAGGIE_INT jaggiePoly(Point* points) {
     if(polyEnd == JAGGIE_MAX_POLYS) {
         return 0;
@@ -137,8 +144,7 @@ JAGGIE_INT jaggiePoly(Point* points) {
     Poly* poly = polys + polyID;
     poly->inside = 0;
 
-    Point* p1 = points;
-    Point* p2 = p1 + 1;
+    Point* polyStart = points;
 
     int done = 0;
     while(!done) {
@@ -146,7 +152,17 @@ JAGGIE_INT jaggiePoly(Point* points) {
         Line* current = 0;
         Line* prev = 0;
 
-        while(p2->x >= 0) {
+        JAGGIE_INT count = polyStart->x;
+        if (count < 3) {
+            return 0;
+        }
+        JAGGIE_INT cutout = polyStart->y;
+        done = !cutout;
+
+        Point* p1 = polyStart + 1;
+        Point* p2 = p1 + 1;
+
+        for (JAGGIE_INT i = 0; i < count - 1; i++) {
             current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID);
             if(!current) {
                 return 0;
@@ -162,22 +178,15 @@ JAGGIE_INT jaggiePoly(Point* points) {
             p2++;
         }
 
-        if(p2->x == -1) {
-            done = 1;
-        }
-
         current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID);
         if(!current){
             return 0;
         }
+
         setHorizontalPeak(current, prev);
         setHorizontalPeak(first, current);
 
-        if(!done) {
-            // Skip negative marker, on to the next vertex
-            p1 += 2;
-            p2 = p1 + 1;
-        }
+        polyStart = p2;
     }
 
     return 1;
