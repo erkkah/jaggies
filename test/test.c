@@ -20,7 +20,8 @@ typedef struct JContext {
 
 void setPixel(void* context, char c) {
     JContext* jc = (JContext*) context;
-    *(jc->bmp) = c ? white : gray;
+    TPixel color = tigrRGB(255 - c, c, 255);
+    *(jc->bmp) = c ? color : gray;
     jc->bmp++;
 }
 
@@ -76,30 +77,40 @@ void animate(Tigr* screen, float time) {
         }
     }
 
-    jaggiePoly(points);
+    jaggiePoly(points, 20);
 
-    jaggiePoint bar[] = {
+    jaggiePoint hbar[] = {
         {4, 0},
         {5, 95},
         {195, 95},
         {195, 105},
         {5, 105},
     };
-    jaggiePoly(bar);
+    jaggiePoly(hbar, 200);
+
+    jaggiePoint vbar[] = {
+        {4, 0},
+        {95, 5},
+        {105, 5},
+        {105, 195},
+        {95, 195},
+    };
+    jaggiePoly(vbar, 222);
+
 
     int lineStart = (int)(100.f * sinf(pos2) + 100.f);
     int lineEnd = 199 - lineStart;
 
-    jaggieLine(10, lineStart, 189, lineEnd);
+    jaggieLine(10, lineStart, 189, lineEnd, 99);
     
-    jaggieLine(0, 5, 5, 0);
-    jaggieLine(0, 0, 5, 5);
+    jaggieLine(0, 5, 5, 0, 1);
+    jaggieLine(0, 0, 5, 5, 1);
 
-    jaggieLine(7, 0, 7, 16);
-    jaggieLine(0, 8, 16, 8);
+    jaggieLine(7, 0, 7, 16, 1);
+    jaggieLine(0, 8, 16, 8, 1);
 
-    jaggieLine(5, 11, 0, 16);
-    jaggieLine(5, 16, 0, 11);
+    jaggieLine(5, 11, 0, 16, 1);
+    jaggieLine(5, 16, 0, 11, 1);
 }
 
 static void renderImages(const char* prefix) {
