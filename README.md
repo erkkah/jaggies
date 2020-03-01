@@ -33,7 +33,7 @@ Jaggies is distributed under the MIT license.
 Basic example:
 
 ```C
-void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, char color) {
+void setPixel(void* context, char color) {
     SomeBitmap* bmp = (SomeBitmap*) context;
     // implementation here!
 }
@@ -45,11 +45,12 @@ jaggieClear();
 
 // A square
 jaggiePoint square[] = {
+    {4, 1},
+
     {10, 10},
     {100, 10},
     {100, 100},
-    {10, 100},
-    {-1, -1}
+    {10, 100}
 };
 
 // Add a polygon
@@ -62,6 +63,8 @@ jaggieRender(150, 150, setPixel, bmp);
 The full four function API is documented in [jaggies.h](jaggies.h).
 
 Check out the example in the [test](test) folder.
+
+![Animated demo](test/test.gif)
 
 > NOTE: The example uses the awesome [tigr](https://github.com/erkkah/tigr) library, which is included as a submodule, but Jaggies itself has no external dependencies.
 
@@ -76,5 +79,3 @@ These are set to relatively low levels (`short int` coordinates, 16 polygons and
 * Jaggies is designed for limited memory situations, it is not your fastest pixel pushing friend. But that's OK.
 
 * Jaggies uses a global state which makes drawing several scenes at the same time impossible. Also fine.
-
-* Special valued coordinates (-1, -1) and (-2, -2) cannot be used for drawing. This is a bad design choice! Yeah, I know. This might get fixed some day.
