@@ -1,4 +1,4 @@
-CFLAGS = -I.. -I./tigr
+CFLAGS = -I.. -I./tigr -DGL_SILENCE_DEPRECATION
 LDFLAGS = -lm
 ifeq ($(OS),Windows_NT)
 	LDFLAGS += -ld3d9
