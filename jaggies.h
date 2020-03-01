@@ -4,7 +4,7 @@ Jaggies - a tiny vector graphics library
 
 Example use:
 
-  void setPixel(void* context, JAGGIE_INT x, JAGGIE_INT y, char color) {
+  void setPixel(void* context, char color) {
     SomeBitmap* bmp = (SomeBitmap*) context;
     ...
   }
@@ -15,11 +15,12 @@ Example use:
   jaggieClear();
 
   jaggiePoint square[] = {
+    {4, 0}, // 4 points follow
+ 
     {10, 10},
     {100, 10},
     {100, 100},
-    {10, 100},
-    {-1, -1}
+    {10, 100}
   };
 
   // ..add a polygon..
@@ -53,13 +54,13 @@ typedef struct Point {
 /*
   Adds a polygon to the render state.
   Polygons are described by a list of points
-  terminated by a (-1, -1) point. Polygons
-  are automatically closed, there is no need
+  prefixed with a (count, last) point.
+
+  Polygons are automatically closed, there is no need
   to repeat the first point.
 
   Multiple sections can optionally be added to the same
-  polygon by separating the sections with (-2, -2) points.
-
+  polygon by setting last=0 in the prefix point.
   This can be used to cut a hole in a polygon.
 
   Returns zero on failure.
