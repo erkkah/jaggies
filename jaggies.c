@@ -1,6 +1,8 @@
 #include "jaggies.h"
 #include <stdlib.h>
 
+#define JAGGIES_COLOR
+
 typedef jaggiePoint Point;
 
 typedef struct Line {
@@ -16,6 +18,11 @@ typedef struct Line {
 
     // Polygon owner, -1 for free lines.
     int owner;
+
+#ifdef JAGGIES_COLOR
+    char color;
+#endif
+
     union {
         // This polygon line starts at a horizontal peak
         JAGGIE_INT hpeak;
@@ -68,7 +75,7 @@ lines bleeding to the right.
 
 */
 
-static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner) {
+static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner, char color) {
     if(lineEnd == JAGGIE_MAX_LINES) {
         return 0;
     }
@@ -80,6 +87,7 @@ static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGI
     line->x2 = x2;
     line->y2 = y2;
     line->owner = owner;
+    line->color = color;
 
     // Set up int interpolation
     if(y1 < y2) {
@@ -135,7 +143,7 @@ static void setHorizontalPeak(Line* current, Line* prev) {
 //
 // Keep points in clock-wise order.
 // Auto closes between start and end points.
-JAGGIE_INT jaggiePoly(Point* points) {
+JAGGIE_INT jaggiePoly(Point* points, char color) {
     if(polyEnd == JAGGIE_MAX_POLYS) {
         return 0;
     }
@@ -163,7 +171,7 @@ JAGGIE_INT jaggiePoly(Point* points) {
         Point* p2 = p1 + 1;
 
         for (JAGGIE_INT i = 0; i < count - 1; i++) {
-            current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID);
+            current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID, color);
             if(!current) {
                 return 0;
             }
@@ -178,7 +186,7 @@ JAGGIE_INT jaggiePoly(Point* points) {
             p2++;
         }
 
-        current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID);
+        current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID, color);
         if(!current){
             return 0;
         }
@@ -192,8 +200,8 @@ JAGGIE_INT jaggiePoly(Point* points) {
     return 1;
 }
 
-JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2) {
-    Line* line = addLinePrimitive(x1, y1, x2, y2, -1);
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, char color) {
+    Line* line = addLinePrimitive(x1, y1, x2, y2, -1, color);
     return line != 0;
 }
 
@@ -398,12 +406,16 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
 
         JAGGIE_INT inside = 0;
         JAGGIE_INT inLine = 0;
+        char lineColor = 0;
+
         for(JAGGIE_INT x = 0; x < width; x++) {
+
             for(Line** l = lStart; l < lEnd; l++) {
                 int owner = (*l)->owner;
                 if(owner == -1) {
                     if(inLine == 0) {
                         inLine = rowPixelsInLine(x, y, *l);
+                        lineColor = (*l)->color;
                     }
                 } else {
                     if(doesPixelCrossLine(x, y, *l)) {
@@ -414,10 +426,27 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
                 }
             }
             if(inLine > 0){
-                setter(context, 1);
+                setter(context, lineColor);
                 inLine--;
             } else {
-                setter(context, inside ? 1 : 0);
+                unsigned char color = 0;
+                if (inside) {
+                    int maxOwner = -1;
+                    for (Line** cLine = lStart; cLine < lEnd; cLine++) {
+                        int cOwner = (*cLine)->owner;
+                        if (cOwner <= maxOwner) {
+                            continue;
+                        }
+                        Poly* cPoly = polys + cOwner;
+                        if (cPoly->inside) {
+                            if (cOwner > maxOwner) {
+                                maxOwner = cOwner;
+                                color = (*cLine)->color;
+                            }
+                        }
+                    }
+                }
+                setter(context, color);
             }
         }
     }
