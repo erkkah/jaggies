@@ -273,7 +273,7 @@ static int doesPixelCrossLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     }
 }
 
-JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
+static JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     // Horizontal line special case
     if(y == l->y1 && l->y1 == l->y2){
         if(l->x1 < l->x2) {
@@ -387,7 +387,7 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
         if(lStart == lLast || ((*lStart)->y0 > y)) {
             // No lines here, just clear scanline
             for(JAGGIE_INT x = 0; x < width; x++) {
-                setter(context, 0);
+                setter(context, bg);
             }
             continue;
         }
@@ -412,14 +412,15 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
         for(JAGGIE_INT x = 0; x < width; x++) {
 
             for(Line** l = lStart; l < lEnd; l++) {
-                int owner = (*l)->owner;
+                Line* line = *l;
+                int owner = line->owner;
                 if(owner == -1) {
                     if(inLine == 0) {
-                        inLine = rowPixelsInLine(x, y, *l);
-                        lineColor = (*l)->color;
+                        inLine = rowPixelsInLine(x, y, line);
+                        lineColor = line->color;
                     }
                 } else {
-                    if(doesPixelCrossLine(x, y, *l)) {
+                    if(doesPixelCrossLine(x, y, line)) {
                         Poly* poly = polys + owner;
                         poly->inside ^= 1;
                         inside += poly->inside ? 1 : -1;
@@ -430,24 +431,23 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
                 setter(context, lineColor);
                 inLine--;
             } else {
-                JAGGIE_COLOR color = bg;
+                JAGGIE_COLOR polyColor = bg;
                 if (inside) {
                     int maxOwner = -1;
+                    for (maxOwner = polyEnd - 1; maxOwner >= 0; maxOwner--)  {
+                        if (polys[maxOwner].inside) {
+                            break;
+                        }
+                    }
                     for (Line** cLine = lStart; cLine < lEnd; cLine++) {
                         int cOwner = (*cLine)->owner;
-                        if (cOwner <= maxOwner) {
-                            continue;
-                        }
-                        Poly* cPoly = polys + cOwner;
-                        if (cPoly->inside) {
-                            if (cOwner > maxOwner) {
-                                maxOwner = cOwner;
-                                color = (*cLine)->color;
-                            }
+                        if (cOwner == maxOwner) {
+                            polyColor = (*cLine)->color;
+                            break;
                         }
                     }
                 }
-                setter(context, color);
+                setter(context, polyColor);
             }
         }
     }

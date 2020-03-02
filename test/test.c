@@ -6,22 +6,31 @@
 
 #include "jaggies.h"
 
-TPixel white = {
-    0xff, 0xff, 0xff, 0xff
-};
-
-TPixel gray = {
-    0x11, 0x11, 0x11, 0xff
-};
-
 typedef struct JContext {
     TPixel* bmp;
 } JContext;
 
+TPixel colors[5] = {
+    {
+        16, 16, 16, 255
+    },
+    {
+        150, 150, 150, 255
+    },
+    {
+        200, 55, 55, 255
+    },
+    {
+        55, 200, 55, 255
+    },
+    {
+        55, 55, 200, 255
+    }
+};
+
 void setPixel(void* context, JAGGIE_COLOR c) {
     JContext* jc = (JContext*) context;
-    TPixel color = tigrRGB(255 - c, c, 255);
-    *(jc->bmp) = c ? color : gray;
+    *(jc->bmp) = colors[c % 5];
     jc->bmp++;
 }
 
@@ -77,7 +86,7 @@ void animate(Tigr* screen, float time) {
         }
     }
 
-    jaggieColor(20);
+    jaggieColor(1);
     jaggiePoly(points);
 
     jaggiePoint hbar[] = {
@@ -87,7 +96,7 @@ void animate(Tigr* screen, float time) {
         {195, 105},
         {5, 105},
     };
-    jaggieColor(200);
+    jaggieColor(2);
     jaggiePoly(hbar);
 
     jaggiePoint vbar[] = {
@@ -97,14 +106,14 @@ void animate(Tigr* screen, float time) {
         {105, 195},
         {95, 195},
     };
-    jaggieColor(222);
+    jaggieColor(3);
     jaggiePoly(vbar);
 
 
     int lineStart = (int)(100.f * sinf(pos2) + 100.f);
     int lineEnd = 199 - lineStart;
 
-    jaggieColor(99);
+    jaggieColor(4);
     jaggieLine(10, lineStart, 189, lineEnd);
     
     jaggieColor(1);
@@ -123,12 +132,10 @@ static void renderImages(const char* prefix) {
     char* buf = (char*) malloc(len + 10);
 
     Tigr* bmp = tigrBitmap(200, 200);
-    float time = 0;
     float totalTime = 12;
     float step = 1.0/15.0;
     int pic = 0;
-    do {
-        time += step;
+    for (float time = step; time < totalTime; time += step) {
 
         tigrClear(bmp, tigrRGB(0, 0, 0));
         animate(bmp, step);
@@ -136,11 +143,11 @@ static void renderImages(const char* prefix) {
             bmp->pix
         };
         jaggieRender(200, 200, 0, setPixel, &jc);
-        sprintf(buf, "%s_%0.3d.png", prefix, pic);
+        sprintf(buf, "%s_%03d.png", prefix, pic);
         tigrSaveImage(buf, bmp);
 
         pic++;
-    } while (time < totalTime);
+    }
 
     free(buf);
     tigrFree(bmp);

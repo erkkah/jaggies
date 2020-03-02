@@ -27,7 +27,7 @@ Example use:
   jaggiePoly(square);
 
   // ..and render!
-  jaggieRender(150, 150, setPixel, bmp);
+  jaggieRender(150, 150, 0, setPixel, bmp);
 
 */
 
@@ -95,12 +95,8 @@ void jaggieClear();
   
   Will always be called sequentially, row by row, from top to bottom,
   to cover the whole frame specified by the current call to `jaggieRender`.
-
-  Color is 0 or 1.
 */
 typedef void(*pixelSetter)(void* context, JAGGIE_COLOR color);
-
-
 
 /*
   Renders the current state to a frame of size (width, height)
