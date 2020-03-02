@@ -18,7 +18,7 @@ typedef struct JContext {
     TPixel* bmp;
 } JContext;
 
-void setPixel(void* context, char c) {
+void setPixel(void* context, JAGGIE_COLOR c) {
     JContext* jc = (JContext*) context;
     TPixel color = tigrRGB(255 - c, c, 255);
     *(jc->bmp) = c ? color : gray;
@@ -77,7 +77,8 @@ void animate(Tigr* screen, float time) {
         }
     }
 
-    jaggiePoly(points, 20);
+    jaggieColor(20);
+    jaggiePoly(points);
 
     jaggiePoint hbar[] = {
         {4, 0},
@@ -86,7 +87,8 @@ void animate(Tigr* screen, float time) {
         {195, 105},
         {5, 105},
     };
-    jaggiePoly(hbar, 200);
+    jaggieColor(200);
+    jaggiePoly(hbar);
 
     jaggiePoint vbar[] = {
         {4, 0},
@@ -95,22 +97,25 @@ void animate(Tigr* screen, float time) {
         {105, 195},
         {95, 195},
     };
-    jaggiePoly(vbar, 222);
+    jaggieColor(222);
+    jaggiePoly(vbar);
 
 
     int lineStart = (int)(100.f * sinf(pos2) + 100.f);
     int lineEnd = 199 - lineStart;
 
-    jaggieLine(10, lineStart, 189, lineEnd, 99);
+    jaggieColor(99);
+    jaggieLine(10, lineStart, 189, lineEnd);
     
-    jaggieLine(0, 5, 5, 0, 1);
-    jaggieLine(0, 0, 5, 5, 1);
+    jaggieColor(1);
+    jaggieLine(0, 5, 5, 0);
+    jaggieLine(0, 0, 5, 5);
 
-    jaggieLine(7, 0, 7, 16, 1);
-    jaggieLine(0, 8, 16, 8, 1);
+    jaggieLine(7, 0, 7, 16);
+    jaggieLine(0, 8, 16, 8);
 
-    jaggieLine(5, 11, 0, 16, 1);
-    jaggieLine(5, 16, 0, 11, 1);
+    jaggieLine(5, 11, 0, 16);
+    jaggieLine(5, 16, 0, 11);
 }
 
 static void renderImages(const char* prefix) {
@@ -130,7 +135,7 @@ static void renderImages(const char* prefix) {
         JContext jc = {
             bmp->pix
         };
-        jaggieRender(200, 200, setPixel, &jc);
+        jaggieRender(200, 200, 0, setPixel, &jc);
         sprintf(buf, "%s_%0.3d.png", prefix, pic);
         tigrSaveImage(buf, bmp);
 
@@ -164,7 +169,7 @@ static void renderScreen() {
         JContext jc = {
             screen->pix
         };
-        jaggieRender(200, 200, setPixel, &jc);
+        jaggieRender(200, 200, 0, setPixel, &jc);
 
         if(markers) {
             tigrPlot(screen, 0, 0, tigrRGB(0xff, 0, 0));

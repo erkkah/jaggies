@@ -35,6 +35,10 @@ Example use:
 #define JAGGIE_INT short
 #endif
 
+#ifndef JAGGIE_COLOR
+#define JAGGIE_COLOR unsigned char
+#endif
+
 #ifndef JAGGIE_MAX_POLYS
 #define JAGGIE_MAX_POLYS 16
 #endif
@@ -65,7 +69,7 @@ typedef struct Point {
 
   Returns zero on failure.
 */
-JAGGIE_INT jaggiePoly(jaggiePoint* points, char color);
+JAGGIE_INT jaggiePoly(jaggiePoint* points);
 
 /*
   Adds a line to the render state.
@@ -74,7 +78,12 @@ JAGGIE_INT jaggiePoly(jaggiePoint* points, char color);
 
   Returns zero on failure.
 */
-JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, char color);
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2);
+
+/*
+  Sets the render state color.
+*/
+void jaggieColor(JAGGIE_COLOR color);
 
 /*
   Clears the render state
@@ -89,13 +98,14 @@ void jaggieClear();
 
   Color is 0 or 1.
 */
-typedef void(*pixelSetter)(void* context, char color);
+typedef void(*pixelSetter)(void* context, JAGGIE_COLOR color);
+
 
 
 /*
   Renders the current state to a frame of size (width, height)
-  using the provided pixel setter.
+  using the provided pixel setter and background color.
 
   The generic context will be passed on to the pixel setter.
 */
-void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter, void* context);
+void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSetter, void* context);
