@@ -1,8 +1,6 @@
 #include "jaggies.h"
 #include <stdlib.h>
 
-#define JAGGIES_COLOR
-
 typedef jaggiePoint Point;
 
 typedef struct Line {
@@ -19,9 +17,7 @@ typedef struct Line {
     // Polygon owner, -1 for free lines.
     int owner;
 
-#ifdef JAGGIES_COLOR
-    char color;
-#endif
+    JAGGIE_COLOR color;
 
     union {
         // This polygon line starts at a horizontal peak
@@ -39,6 +35,7 @@ typedef struct Poly {
 static Poly polys[JAGGIE_MAX_POLYS];
 static Line lines[JAGGIE_MAX_LINES];
 static Line* sortedLines[JAGGIE_MAX_LINES];
+static JAGGIE_COLOR color;
 
 static int polyEnd = 0;
 static int lineEnd = 0;
@@ -75,7 +72,7 @@ lines bleeding to the right.
 
 */
 
-static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner, char color) {
+static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, int owner) {
     if(lineEnd == JAGGIE_MAX_LINES) {
         return 0;
     }
@@ -143,7 +140,7 @@ static void setHorizontalPeak(Line* current, Line* prev) {
 //
 // Keep points in clock-wise order.
 // Auto closes between start and end points.
-JAGGIE_INT jaggiePoly(Point* points, char color) {
+JAGGIE_INT jaggiePoly(Point* points) {
     if(polyEnd == JAGGIE_MAX_POLYS) {
         return 0;
     }
@@ -171,7 +168,7 @@ JAGGIE_INT jaggiePoly(Point* points, char color) {
         Point* p2 = p1 + 1;
 
         for (JAGGIE_INT i = 0; i < count - 1; i++) {
-            current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID, color);
+            current = addLinePrimitive(p1->x, p1->y, p2->x, p2->y, polyID);
             if(!current) {
                 return 0;
             }
@@ -186,7 +183,7 @@ JAGGIE_INT jaggiePoly(Point* points, char color) {
             p2++;
         }
 
-        current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID, color);
+        current = addLinePrimitive(p1->x, p1->y, first->x1, first->y1, polyID);
         if(!current){
             return 0;
         }
@@ -200,9 +197,13 @@ JAGGIE_INT jaggiePoly(Point* points, char color) {
     return 1;
 }
 
-JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2, char color) {
-    Line* line = addLinePrimitive(x1, y1, x2, y2, -1, color);
+JAGGIE_INT jaggieLine(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGIE_INT y2) {
+    Line* line = addLinePrimitive(x1, y1, x2, y2, -1);
     return line != 0;
+}
+
+void jaggieColor(JAGGIE_COLOR c) {
+    color = c;
 }
 
 void jaggieClear() {
@@ -354,7 +355,7 @@ JAGGIE_INT rowPixelsInLine(JAGGIE_INT x, JAGGIE_INT y, Line* l) {
     return 0;
 }
 
-void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void* context) {
+void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSetter setter, void* context) {
     if(lineEnd == 0) {
         return;
     }
@@ -406,7 +407,7 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
 
         JAGGIE_INT inside = 0;
         JAGGIE_INT inLine = 0;
-        char lineColor = 0;
+        JAGGIE_COLOR lineColor = bg;
 
         for(JAGGIE_INT x = 0; x < width; x++) {
 
@@ -429,7 +430,7 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, pixelSetter setter, void*
                 setter(context, lineColor);
                 inLine--;
             } else {
-                unsigned char color = 0;
+                JAGGIE_COLOR color = bg;
                 if (inside) {
                     int maxOwner = -1;
                     for (Line** cLine = lStart; cLine < lEnd; cLine++) {
