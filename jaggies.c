@@ -17,7 +17,9 @@ typedef struct Line {
     // Polygon owner, -1 for free lines.
     int owner;
 
+#ifndef JAGGIE_SINGLE_COLOR
     JAGGIE_COLOR color;
+#endif
 
     union {
         // This polygon line starts at a horizontal peak
@@ -84,7 +86,9 @@ static Line* addLinePrimitive(JAGGIE_INT x1, JAGGIE_INT y1, JAGGIE_INT x2, JAGGI
     line->x2 = x2;
     line->y2 = y2;
     line->owner = owner;
+#ifndef JAGGIE_SINGLE_COLOR
     line->color = color;
+#endif
 
     // Set up int interpolation
     if(y1 < y2) {
@@ -407,7 +411,12 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
 
         JAGGIE_INT inside = 0;
         JAGGIE_INT inLine = 0;
-        JAGGIE_COLOR lineColor = bg;
+        JAGGIE_COLOR lineColor;
+#ifndef JAGGIE_SINGLE_COLOR
+        lineColor = bg;
+#else
+        lineColor = color;
+#endif
 
         for(JAGGIE_INT x = 0; x < width; x++) {
 
@@ -417,7 +426,9 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
                 if(owner == -1) {
                     if(inLine == 0) {
                         inLine = rowPixelsInLine(x, y, line);
+#ifndef JAGGIE_SINGLE_COLOR
                         lineColor = line->color;
+#endif
                     }
                 } else {
                     if(doesPixelCrossLine(x, y, line)) {
@@ -433,6 +444,7 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
             } else {
                 JAGGIE_COLOR polyColor = bg;
                 if (inside) {
+#ifndef JAGGIE_SINGLE_COLOR
                     int maxOwner = -1;
                     for (maxOwner = polyEnd - 1; maxOwner >= 0; maxOwner--)  {
                         if (polys[maxOwner].inside) {
@@ -446,6 +458,9 @@ void jaggieRender(JAGGIE_INT width, JAGGIE_INT height, JAGGIE_COLOR bg, pixelSet
                             break;
                         }
                     }
+#else
+                    polyColor = color;
+#endif
                 }
                 setter(context, polyColor);
             }
