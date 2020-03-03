@@ -35,7 +35,7 @@ Jaggies is distributed under the MIT license.
 Basic example:
 
 ```C
-void setPixel(void* context, char color) {
+void setPixel(void* context, unsigned char color) {
     SomeBitmap* bmp = (SomeBitmap*) context;
     // implementation here!
 }
@@ -77,6 +77,9 @@ Since required structures are statically allocated, the overall memory requireme
 These are set to relatively low levels (`short int` coordinates, 16 polygons and 48 lines) by default, and can be overridden by setting the `JAGGIE_INT`, `JAGGIE_MAX_POLYS` and `JAGGIE_MAX_LINES` preprocessor defines.
 
 The pixel type is `unsigned char` by default, but can be changed by setting the `JAGGIE_COLOR` define.
+
+If you are really low on memory and cycles, multi-color support can be turned off by setting the `JAGGIE_SINGLE_COLOR` define.
+This causes all primitives to be drawn in the same color, using the last value set by `jaggieColor()`.
 
 ## Known issues
 
